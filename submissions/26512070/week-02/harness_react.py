@@ -1,55 +1,44 @@
-"""Week 02 starter — the ReAct-style harness.
+"""Week 02 LAB 2 — ReAct 형 하네스.
 
-Every step: the model writes a Thought, calls a tool (Action), sees the result
-(Observation), and decides again. The five axes from the lecture are marked.
+매 스텝: Thought → Action(도구 호출) → Observation(결과) → 다시 Thought.
+다음에 무엇을 할지를 매 스텝 다시 판단한다.
+
+run_ab.py 가 기대하는 계약:
+    run_react(task, log=print) -> (answer_str, meter)
+    log(msg) 로 찍은 것이 logs/ 파일에 그대로 남는다.
+    → Thought 와 Observation 이 로그에 보이게 찍을 것 (CHECKPOINT 4번)
 """
 import sys
 
-from tools_shared import Chat, Meter
+# TODO from tools_shared import ...   (Meter, 도구, 모델 래퍼)
+
+
+# ------------------------------------------------------------ 다섯 요소
+# 이 파일에서 다섯 축의 값을 '내가' 정한다. 모델이 정하지 않는다.
+#
+# [요소1] 컨텍스트 관리   : 전체 이력을 매 호출에 다 넣는가?
+# [요소2] 도구 세분화     : tools_shared 의 TOOL_SPECS (두 하네스 공통)
+# [요소3] 종료 조건       : max_steps 상한 + 모델이 도구를 안 부르면 종료
+# [요소4] 에러 복구       : 도구 에러를 Observation 으로 되돌려 모델이 고치게
+# [요소5] 인간 개입 지점  : IRREVERSIBLE 도구 앞에서 승인 요청, 횟수를 센다
+#                          (읽기 전용 도구뿐이면 interventions 는 0으로 남는다)
 
 SYSTEM = (
-    "You solve tasks with the tools you are given. Before every tool call, "
-    "write one line that starts with 'Thought:' saying what you know and what "
-    "you will do next. When the task is complete, reply with a line that starts "
-    "with 'Answer:' and make no tool call."
+    ""  # TODO Thought 를 한 줄 쓰게 하고, 끝났으면 'Answer:' 로 답하게 하는 지시
 )
 
-# [axis 5] calls that must be approved by a human before they run.
-# The starter tools are read-only, so this set is empty and interventions
-# stay at 0. Add a tool that writes or deletes, and put its name here.
-IRREVERSIBLE = set()
+IRREVERSIBLE = set()  # TODO 승인이 필요한 도구 이름. 지금 도구는 읽기 전용
 
 
-def ask_human(call) -> bool:
-    answer = input(f"approve {call.name}({call.args})? [y/N] ").strip().lower()
-    return answer == "y"
-
-
-def run_react(task: str, max_steps: int = 8, log=print):
-    meter = Meter()
-    chat = Chat(SYSTEM, meter)                    # [axis 1] context: full history, every call
-    chat.add_user(task)
-
-    for step in range(max_steps):                 # [axis 3] termination: iteration cap
-        reply = chat.send()
-        if reply.text.strip():
-            log(f"[step {step + 1}] {reply.text.strip()}")
-
-        if not reply.tool_calls:                  # [axis 3] the model chose to finish
-            return reply.text, meter
-
-        approved = []
-        for call in reply.tool_calls:
-            if call.name in IRREVERSIBLE and not ask_human(call):
-                meter.interventions += 1          # [axis 5] intervention point
-                chat.add_tool_result(call, "denied: human did not approve")
-                continue
-            approved.append(call)
-        reply.tool_calls = approved
-        chat.run_tools(reply, log)                # [axis 2] granularity lives in tools_shared
-                                                  # [axis 4] errors come back as Observations
-
-    return "MAX_STEPS reached: incomplete", meter
+def run_react(task, max_steps=8, log=print):
+    # TODO 1) Meter 와 대화를 만들고 task 를 사용자 메시지로 넣는다
+    # TODO 2) max_steps 만큼 루프:
+    #           모델 호출 → 텍스트를 log 로 찍기(Thought 가 남아야 한다)
+    #           도구 호출이 없으면 → 답으로 보고 종료
+    #           IRREVERSIBLE 이면 승인 요청, 거부면 interventions += 1
+    #           도구 실행 → 결과를 대화에 되돌려 넣기 → 다음 스텝
+    # TODO 3) 상한에 걸리면 미완으로 종료
+    raise NotImplementedError("LAB 2")
 
 
 if __name__ == "__main__":
